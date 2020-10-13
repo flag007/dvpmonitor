@@ -7,7 +7,12 @@ import (
 	"log"
 	"os"
 	"bufio"
+	"flag"
+	"errors"
+	"encoding/json"
 	"net/http"
+	"io/ioutil"
+
 )
 
 var au aurora.Aurora
@@ -158,6 +163,14 @@ func fetchUrlscan(page string, ok bool) ([]string, error) {
 
 
 func main() {
+	var contentlists []string
+	agentid := flag.Int("i", 1000003, "-i 企业微信应用AgentId")
+	content := flag.String("c", "", "-c '' 指定要发送的内容")
+	corpid := flag.String("p", "ww762f1f2b3b28bc7a", "-p 企业ID")
+	corpsecret := flag.String("s", "v0vSdFwTNOOQnJaLeXkWaAI8mdeS1tGwmG_IvpeLEKo", "-s 企业微信应用Secret")
+	flag.Parse()
+	
+	
 	ok := make(map[string]bool)
 
 	out1, _:= fetchUrlscan("1", false)
@@ -194,5 +207,34 @@ func main() {
 	if err := writeLines(out, "dvp.monitor.txt"); err != nil {
 		log.Fatalf("writeLines: %s", err)
 	}
+	
+	//通知
+	var meg send_msg = send_msg{Touser: "@all", Msgtype: "text", Agentid: *agentid, Text: map[string]string{"content": content2}}
+
+	token, err := Get_token(*corpid, *corpsecret)
+	if err != nil {
+		println(err.Error())
+		return
+	}
+	buf, err := json.Marshal(meg)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(buf, &meg)
+	if err != nil {
+		println(err)
+		return
+	}
+	err = Send_msg(token.Access_token, buf)
+	if err != nil {
+		println(err.Error())
+	}
+
+	
+	
+	
+	
+	
+	
 
 }
