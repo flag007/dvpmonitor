@@ -1,8 +1,9 @@
 package main
 
 import (
+	"strings"
+	"bytes"
 	"github.com/logrusorgru/aurora"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -163,20 +164,27 @@ func fetchUrlscan(page string, ok bool) ([]string, error) {
 
 
 func main() {
-	var contentlists []string
-	agentid := flag.Int("i", 1000003, "-i 企业微信应用AgentId")
-	content := flag.String("c", "", "-c '' 指定要发送的内容")
-	corpid := flag.String("p", "ww762f1f2b3b28bc7a", "-p 企业ID")
-	corpsecret := flag.String("s", "v0vSdFwTNOOQnJaLeXkWaAI8mdeS1tGwmG_IvpeLEKo", "-s 企业微信应用Secret")
+	agentid := flag.Int("i", 1000003, "？？？？")
+	corpid := flag.String("p", "ww762f1f2b3b28bc7a", "？？？？")
+	corpsecret := flag.String("s", "v0vSdFwTNOOQnJaLeXkWaAI8mdeS1tGwmG_IvpeLEKo", "？？？？？")
 	flag.Parse()
-	
-	
+
 	ok := make(map[string]bool)
 
 	out1, _:= fetchUrlscan("1", false)
 	out2, _:= fetchUrlscan("2", true)
 
 	out := append(out1, out2...)
+
+	info := ""
+
+	if len(out) == 120 {
+		fmt.Println(au.Green("API接口正常运行"))
+		info = "API接口正常运行\n"
+	} else {
+		fmt.Println(au.Magenta("API接口异常， 请检查"))
+		info = "API接口异常， 请检查\n"
+	}
 
 	lines, err := readLines("dvp.monitor.txt")
 	if err != nil {
@@ -195,21 +203,31 @@ func main() {
 		newdatas = append(newdatas, o)
 	}
 
+	var content string
+
 	if len(newdatas) == 0 {
 		fmt.Println(au.Green("运行完毕， 没有找到新厂商"))
+		content = "运行完毕， 没有找到新厂商"
 	} else {
 		fmt.Println(au.Magenta("运行完毕， 找到新的厂商， 注意微信消息"))
+		content = "运行完毕， 找到新的厂商，赶紧捡垃圾， 奥利给\n"
 		for _, n := range newdatas{
-			fmt.Println(au.Yellow("[!]" + n))
+			fmt.Println(au.Yellow("[!] " + n))
+			content = content + "[!] " + n + "\n"
 		}
+
+		content = strings.TrimRight(content, "\n")
+
 	}
+
+	content1 := info + content
 
 	if err := writeLines(out, "dvp.monitor.txt"); err != nil {
 		log.Fatalf("writeLines: %s", err)
 	}
-	
+
 	//通知
-	var meg send_msg = send_msg{Touser: "@all", Msgtype: "text", Agentid: *agentid, Text: map[string]string{"content": content2}}
+	var meg send_msg = send_msg{Touser: "@all", Msgtype: "text", Agentid: *agentid, Text: map[string]string{"content": content1}}
 
 	token, err := Get_token(*corpid, *corpsecret)
 	if err != nil {
@@ -229,12 +247,5 @@ func main() {
 	if err != nil {
 		println(err.Error())
 	}
-
-	
-	
-	
-	
-	
-	
 
 }
