@@ -1,6 +1,7 @@
 package main
 
 import (
+	"time"
 	"strings"
 	"bytes"
 	"github.com/logrusorgru/aurora"
@@ -169,83 +170,93 @@ func main() {
 	corpsecret := flag.String("s", "v0vSdFwTNOOQnJaLeXkWaAI8mdeS1tGwmG_IvpeLEKo", "？？？？？")
 	flag.Parse()
 
-	ok := make(map[string]bool)
+	for true  {
 
-	out1, _:= fetchUrlscan("1", false)
-	out2, _:= fetchUrlscan("2", true)
+		ok := make(map[string]bool)
 
-	out := append(out1, out2...)
+		out1, _:= fetchUrlscan("1", false)
+		out2, _:= fetchUrlscan("2", true)
 
-	info := ""
+		out := append(out1, out2...)
 
-	if len(out) == 120 {
-		fmt.Println(au.Green("API接口正常运行"))
-		info = "API接口正常运行\n"
-	} else {
-		fmt.Println(au.Magenta("API接口异常， 请检查"))
-		info = "API接口异常， 请检查\n"
-	}
+		info := ""
+		var cstSh, _ = time.LoadLocation("Asia/Shanghai") //上海
 
-	lines, err := readLines("dvp.monitor.txt")
-	if err != nil {
-		log.Fatalf("readLines: %s", err)
-	}
+		fmt.Println(au.Yellow(time.Now().In(cstSh).Format("2006-01-02 15:04:05")))
 
-	for _, line := range lines {
-		ok[line] = true
-	}
 
-	newdatas := []string {}
-	for _, o := range out {
-		if ok[o] {
-			continue
-		}
-		newdatas = append(newdatas, o)
-	}
-
-	var content string
-
-	if len(newdatas) == 0 {
-		fmt.Println(au.Green("运行完毕， 没有找到新厂商"))
-		content = "运行完毕， 没有找到新厂商"
-	} else {
-		fmt.Println(au.Magenta("运行完毕， 找到新的厂商， 注意微信消息"))
-		content = "运行完毕， 找到新的厂商，赶紧捡垃圾， 奥利给\n"
-		for _, n := range newdatas{
-			fmt.Println(au.Yellow("[!] " + n))
-			content = content + "[!] " + n + "\n"
+		if len(out) == 120 {
+			fmt.Println(au.Green("API接口正常运行"))
+			info = "API接口正常运行\n"
+		} else {
+			fmt.Println(au.Magenta("API接口异常， 请检查"))
+			info = "API接口异常， 请检查\n"
 		}
 
-		content = strings.TrimRight(content, "\n")
+		lines, err := readLines("dvp.monitor.txt")
+		if err != nil {
+			log.Fatalf("readLines: %s", err)
+		}
+
+		for _, line := range lines {
+			ok[line] = true
+		}
+
+		newdatas := []string {}
+		for _, o := range out {
+			if ok[o] {
+				continue
+			}
+			newdatas = append(newdatas, o)
+		}
+
+		var content string
+
+
+
+		if len(newdatas) == 0 {
+			fmt.Println(au.Green("运行完毕， 没有找到新厂商"))
+		} else {
+			fmt.Println(au.Magenta("运行完毕， 找到新的厂商， 注意微信消息"))
+			content = "运行完毕， 找到新的厂商，赶紧捡垃圾， 奥利给\n"
+			for _, n := range newdatas{
+				fmt.Println(au.Yellow("[!] " + n))
+				content = content + "[!] " + n + "\n"
+			}
+
+			content = info + strings.TrimRight(content, "\n")
+
+
+			//通知
+			var meg send_msg = send_msg{Touser: "@all", Msgtype: "text", Agentid: *agentid, Text: map[string]string{"content": content}}
+
+			token, err := Get_token(*corpid, *corpsecret)
+			if err != nil {
+				println(err.Error())
+				return
+			}
+			buf, err := json.Marshal(meg)
+			if err != nil {
+				return
+			}
+			err = json.Unmarshal(buf, &meg)
+			if err != nil {
+				println(err)
+				return
+			}
+			err = Send_msg(token.Access_token, buf)
+			if err != nil {
+				println(err.Error())
+			}
+
+		}
+
+
+		if err := writeLines(out, "dvp.monitor.txt"); err != nil {
+			log.Fatalf("writeLines: %s", err)
+		}
 
 	}
 
-	content1 := info + content
-
-	if err := writeLines(out, "dvp.monitor.txt"); err != nil {
-		log.Fatalf("writeLines: %s", err)
-	}
-
-	//通知
-	var meg send_msg = send_msg{Touser: "@all", Msgtype: "text", Agentid: *agentid, Text: map[string]string{"content": content1}}
-
-	token, err := Get_token(*corpid, *corpsecret)
-	if err != nil {
-		println(err.Error())
-		return
-	}
-	buf, err := json.Marshal(meg)
-	if err != nil {
-		return
-	}
-	err = json.Unmarshal(buf, &meg)
-	if err != nil {
-		println(err)
-		return
-	}
-	err = Send_msg(token.Access_token, buf)
-	if err != nil {
-		println(err.Error())
-	}
 
 }
