@@ -191,6 +191,7 @@ func main() {
 		} else {
 			fmt.Println(au.Magenta("API接口异常， 请检查"))
 			info = "API接口异常， 请检查\n"
+			continue
 		}
 
 		lines, err := readLines("dvp.monitor.txt")
